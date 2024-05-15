@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  browsergpt:
+    build: .
+    ports:
+      - '3000:3000'
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      DISPLAY: host.docker.internal:0
+    volumes:
+      #      - .:/usr/src/app # Mounts the code into the container to allow for live changes
+      - playwright-data:/home/pwuser # Persistent volume for playwright data
+      - /tmp/.X11-unix:/tmp/.X11-unix
+
+volumes:
+  playwright-data:
+    driver: local
