@@ -12,7 +12,7 @@ export function preprocessJsonInput(text) {
     throw new Error('No code found');
   }
 }
-export {parseSite} from './page-parser.js';
+export {parseSite} from './pageParser.js';
 
 export function createTestFile(filePath) {
   const boilerPlate = `import { test, expect } from '@playwright/test';

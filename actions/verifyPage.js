@@ -4,53 +4,57 @@ import {parseSite} from '../util/index.js';
 
 async function verifyPageStepByStep(chatApi, page, verificationGuidelines) {
   const systemPrompt = `
-You are a Senior SDET tasked with verifying the results of specific actions taken on a webpage. You will receive the current page content and the verification guidelines. Based on this information, analyze step by step whether the verification criteria are met and provide a detailed text result.
+Jesteś starszym inżynierem ds. testów automatycznych (Senior SDET) i Twoim zadaniem jest weryfikacja wyników kroków testowych podjętych na stronie internetowej. Otrzymasz zawartość bieżącej strony oraz kryteria akceptacji kroku testowego. Na podstawie tych informacji, przeanalizuj krok po kroku, czy kryteria akceptacji są spełnione, i dostarcz szczegółowy wynik w formie tekstowej.
 
-Context:
-- Your computer is a Mac. Cmd is the meta key, META.
-- The browser is already open.
-- Current page URL: ${await page.evaluate('location.href')}.
-- Current page title: ${await page.evaluate('document.title')}.
-- Overview of the site in HTML format:
+Kontekst:
+- Twój komputer to Mac. Cmd to klawisz meta, META.
+- Przeglądarka jest już otwarta.
+- Aktualny adres URL strony: ${await page.evaluate('location.href')}.
+- Aktualny tytuł strony: ${await page.evaluate('document.title')}.
+- Przegląd strony w formacie HTML:
 \`\`\`
 ${await parseSite(page)}
 \`\`\`
 
-Key Points:
-- Carefully analyze the provided page content and the verification guidelines step by step.
-- Provide a detailed text result indicating whether each part of the guidelines is met and any issues found.
+Kluczowe Punkty:
+- Dokładnie przeanalizuj dostarczoną zawartość strony oraz kryteria akceptacji krok po kroku.
+- Bierz pod uwagę tylko wytyczne zawarte bezpośrednio w kryteriach akceptacji. Jeśli jakakolwiek informacja nie jest zawarta w kryteriach akceptacji, nie bierz jej pod uwagę.
+- Dostarcz szczegółowy wynik w formie tekstowej, wskazując, czy każda część kryteriów jest spełniona oraz wszelkie znalezione problemy.
 
-Verification Guidelines: ${verificationGuidelines}
+Kryteria akceptacji: ${verificationGuidelines}
 `;
 
   const completion = await retry(async () =>
     chatApi.call([
       new SystemMessage(systemPrompt),
       new HumanMessage(
-        'Please verify the page content based on the provided guidelines step by step and return a detailed text result.'
+        'Proszę zweryfikować zawartość strony na podstawie dostarczonych kryteriów krok po kroku i zwrócić szczegółowy wynik w formie tekstowej.'
       ),
     ])
   );
+
+  console.log(completion.text);
 
   return completion.text;
 }
 
 async function verifyPageBoolean(chatApi, verificationResultText) {
   const systemPrompt = `
-You are a Senior SDET tasked with determining whether the verification guidelines have been met based on the detailed text result of the verification process. You will receive the detailed text result and you need to return a single boolean value indicating whether the verification criteria are met.
+Jesteś starszym inżynierem ds. testów automatycznych (Senior SDET) i Twoim zadaniem jest określenie, czy kryteria akceptacji kroku testowego zostały spełnione na podstawie szczegółowego wyniku weryfikacji w formie tekstowej. Otrzymasz szczegółowy wynik w formie tekstowej i musisz zwrócić pojedynczą wartość logiczną wskazującą, czy kryteria akceptacji zostały spełnione.
 
-Key Points:
-- Carefully analyze the provided text result.
-- Return 'true' if the verification criteria are met, otherwise return 'false'.
+Kluczowe Punkty:
+- Dokładnie przeanalizuj dostarczony wynik w formie tekstowej.
+- Twoja odpowiedź musi zawierać jedynie pojedynczą wartość logiczną, nie może zawierać nic innego.
+- Zwróć 'true', jeśli kryteria akceptacji są spełnione, w przeciwnym razie zwróć 'false'.
 
-Detailed Text Result: ${verificationResultText}
+Szczegółowy Wynik Weryfikacji: ${verificationResultText}
 `;
 
   const completion = await retry(async () =>
     chatApi.call([
       new SystemMessage(systemPrompt),
       new HumanMessage(
-        'Please analyze the detailed text result and return a single boolean value indicating whether the verification criteria are met.'
+        'Proszę przeanalizować szczegółowy wynik w formie tekstowej i zwrócić pojedynczą wartość logiczną wskazującą, czy kryteria weryfikacji są spełnione.'
       ),
     ])
   );
@@ -58,9 +62,9 @@ Detailed Text Result: ${verificationResultText}
   let verificationResult = false;
   try {
     verificationResult = JSON.parse(completion.text);
-    console.log('Verification Boolean Result:', verificationResult);
+    console.log('Wynik weryfikacji:', verificationResult);
   } catch (e) {
-    console.log('Failed to parse verification boolean result:', e);
+    console.log('Nie udało się odczytać wyniku weryfikacji:', e);
   }
 
   return verificationResult;
@@ -68,20 +72,20 @@ Detailed Text Result: ${verificationResultText}
 
 async function verificationFailureReason(chatApi, verificationResultText) {
   const systemPrompt = `
-You are a Senior SDET tasked with providing a short description of why the verification guidelines have not been met based on the detailed text result of the verification process. You will receive the detailed text result and you need to return a short description of the issues found.
+Jesteś starszym inżynierem ds. testów automatycznych (Senior SDET) i Twoim zadaniem jest dostarczenie krótkiego opisu, dlaczego kryteria akceptacji kroku testowego nie zostały spełnione, na podstawie szczegółowego wyniku weryfikacji w formie tekstowej. Otrzymasz szczegółowy wynik w formie tekstowej i musisz zwrócić krótki opis znalezionych problemów.
 
-Key Points:
-- Carefully analyze the provided text result.
-- Provide a short description of the issues found that caused the verification to fail.
+Kluczowe Punkty:
+- Dokładnie przeanalizuj dostarczony wynik w formie tekstowej.
+- Podaj krótki opis (maksymalnie 200 znaków) znalezionych problemów, które spowodowały niepowodzenie weryfikacji.
 
-Detailed Text Result: ${verificationResultText}
+Szczegółowy Wynik Weryfikacji: ${verificationResultText}
 `;
 
   const completion = await retry(async () =>
     chatApi.call([
       new SystemMessage(systemPrompt),
       new HumanMessage(
-        'Please analyze the detailed text result and provide a short description of why the verification guidelines have not been met.'
+        'Proszę przeanalizować szczegółowy wynik w formie tekstowej i podać krótki opis, dlaczego kryteria akceptacji nie zostały spełnione.'
       ),
     ])
   );
@@ -105,13 +109,16 @@ export async function verifyPage(chatApi, page, verificationGuidelines) {
       chatApi,
       verificationResultText
     );
-    console.log('Verification failed:', failureReason);
+    console.log(
+      'Kryteria akceptacji nie zostały spełnione. Powód:',
+      failureReason
+    );
     return {
       passed: false,
       reason: failureReason,
     };
   } else {
-    console.log('Verification passed');
+    console.log('Kryteria akceptacji zostały spełnione.');
     return {
       passed: true,
       reason: null,

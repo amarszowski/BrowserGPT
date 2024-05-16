@@ -1,10 +1,10 @@
-# BrowserGPT
+# ScenarioAI
 
 This project allows you to control your browser using natural language. It integrates OpenAI's GPT-4 with the Playwright library, enabling seamless browser navigation. GPT-4 generates code snippets, which Playwright executes to carry out specified tasks.
 
 ## Demo
 
-![BrowserGPT in action](./public/browsergpt.gif)
+![ScenarioAI in action](./public/scenario-ai.gif)
 
 ## Installation
 

@@ -4,19 +4,18 @@ import {HumanMessage, SystemMessage} from 'langchain/schema';
 
 export async function findInPage(page, chatApi, task) {
   const systemPrompt = `
-You are a programmer and your job is to pick out information in code to a pm. You are working on an html file. You will extract the necessary content asked from the information provided. 
+Jesteś programistą i Twoim zadaniem jest wybieranie informacji z kodu dla kierownika projektu. Pracujesz nad plikiem HTML. Wyciągniesz niezbędne treści z dostarczonych informacji.
 
-Context:
-Your computer is a mac. Cmd is the meta key, META.
-The browser is already open. 
-Current page url is ${await page.evaluate('location.href')}.
-Current page title is ${await page.evaluate('document.title')}.
+Kontekst:
+Twój komputer to Mac. Cmd to klawisz meta, META.
+Przeglądarka jest już otwarta.
+Aktualny adres URL strony to ${await page.evaluate('location.href')}.
+Aktualny tytuł strony to ${await page.evaluate('document.title')}.
 
-Here is the overview of the site. Format is in html:
+Oto przegląd strony. Format jest w HTML:
 \`\`\`
 ${await parseSite(page)}
 \`\`\`
-
 `;
 
   const completion = await retry(async () =>
