@@ -1,5 +1,3 @@
-import fs from 'fs';
-import csv from 'csv-parser';
 import delay from 'delay';
 import {interactWithPage} from '../actions/index.js';
 import {logPageScreenshot} from './index.js';
@@ -13,98 +11,59 @@ export async function processTask(
   options,
   results
 ) {
-  try {
-    await interactWithPage(chatApi, page, task, options);
+  const maxRetries = 3;
+  let attempt = 0;
+  let success = false;
 
-    if (options.headless) {
-      await logPageScreenshot(page);
-    }
+  while (attempt < maxRetries && !success) {
+    try {
+      await interactWithPage(chatApi, page, task, options);
 
-    await delay(2000); // Wait 2 seconds before verifying
+      if (options.headless) {
+        await logPageScreenshot(page);
+      }
 
-    const verificationResult = await verifyPage(
-      chatApi,
-      page,
-      verificationCriteria
-    );
-    if (verificationResult.passed) {
-      results.push({
-        task,
-        criteria: verificationCriteria,
-        status: 'Zaliczony',
-        details: '',
-      });
-    } else {
-      results.push({
-        task,
-        criteria: verificationCriteria,
-        status: 'Nie zaliczony',
-        details: verificationResult.reason,
-      });
-    }
-  } catch (e) {
-    console.log('Wykonanie nieudane');
-    console.log(e);
-    results.push({
-      task,
-      criteria: verificationCriteria,
-      status: 'Nie zaliczony',
-      details: 'Wystąpił błąd',
-    });
-    throw new Error('Błąd w przetwarzaniu kroku testowego');
-  }
-}
+      await delay(2000); // Wait 2 seconds before verifying
 
-export async function writeResultsToFile(filePath, results) {
-  const headers = [
-    'Krok testowy',
-    'Kryteria akceptacji',
-    'Status',
-    'Szczegóły',
-  ];
-  const csvContent = [
-    headers.join(';'),
-    ...results.map((result) =>
-      [result.task, result.criteria, result.status, result.details].join(';')
-    ),
-  ].join('\n');
+      const verificationResult = await verifyPage(
+        chatApi,
+        page,
+        verificationCriteria
+      );
 
-  fs.writeFileSync(filePath, csvContent);
-  console.log(`Wyniki zapisane w ${filePath}`);
-}
-
-export async function processCSVTasks(
-  csvFilePath,
-  page,
-  chatApi,
-  options,
-  results
-) {
-  return new Promise((resolve, reject) => {
-    const tasks = [];
-    fs.createReadStream(csvFilePath)
-      .pipe(csv({separator: ';'}))
-      .on('data', (row) => {
-        tasks.push({
-          task: row['Krok testowy'],
-          criteria: row['Kryteria akceptacji'],
+      if (verificationResult.passed) {
+        results.push({
+          task,
+          criteria: verificationCriteria,
+          status: 'Zaliczony',
+          details: '',
         });
-      })
-      .on('end', async () => {
-        try {
-          console.log('Plik CSV przetworzony pomyślnie');
-          for (const {task, criteria} of tasks) {
-            await processTask(task, criteria, page, chatApi, options, results);
-          }
-          resolve();
-        } catch (error) {
-          reject(error);
-        }
-      })
-      .on('error', (error) => {
-        reject(error);
-      });
-  });
+        success = true;
+      } else {
+        results.push({
+          task,
+          criteria: verificationCriteria,
+          status: 'Nie zaliczony',
+          details: verificationResult.reason,
+        });
+        success = true;
+      }
+    } catch (e) {
+      attempt += 1;
+      console.log(`Wykonanie nieudane, próba ${attempt} z ${maxRetries}`);
+      console.log(e);
+
+      if (attempt >= maxRetries) {
+        results.push({
+          task,
+          criteria: verificationCriteria,
+          status: 'Nie zaliczony',
+          details: 'Wystąpił błąd',
+        });
+        throw new Error('Błąd w przetwarzaniu kroku testowego');
+      }
+    }
+  }
 }
 
 export async function processPromptTasks(

@@ -4,11 +4,8 @@ import prompt from 'prompt';
 import {Command} from 'commander';
 import {ChatOpenAI} from '@langchain/openai';
 import {createTestFile, gracefulExit} from './util/index.js';
-import {
-  processCSVTasks,
-  processPromptTasks,
-  writeResultsToFile,
-} from './util/taskProcessor.js';
+import {processPromptTasks} from './util/taskProcessor.js';
+import {writeResultsToFile, processExcelTasks} from './util/excelUtils.js';
 
 dotenv.config();
 
@@ -42,7 +39,7 @@ async function main(options) {
   prompt.start();
 
   const chatApi = new ChatOpenAI({
-    temperature: 0.0,
+    temperature: 0.1,
     modelName: options.model ? options.model : 'gpt-4o',
   });
 
@@ -58,9 +55,9 @@ async function main(options) {
   const results = [];
 
   try {
-    if (options.csvFilePath) {
-      await processCSVTasks(
-        options.csvFilePath,
+    if (options.excelFilePath) {
+      await processExcelTasks(
+        options.excelFilePath,
         page,
         chatApi,
         options,
@@ -95,8 +92,8 @@ program
   .option('-v, --viewport <viewport>', 'rozmiar viewport', '1280,720')
   .option('-h, --headless', 'uruchom w trybie headless', false)
   .option(
-    '-c, --csvFilePath <csvFilePath>',
-    'ścieżka do pliku CSV z instrukcjami'
+    '-e, --excelFilePath <excelFilePath>',
+    'ścieżka do pliku Excel ze scenariuszem testowym'
   );
 
 program.parse();
