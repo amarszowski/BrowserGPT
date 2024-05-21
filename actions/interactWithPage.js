@@ -21,16 +21,12 @@ export async function interactWithPage(chatApi, page, task, options) {
 
 async function queryGPT(chatApi, messages) {
   const completion = await retry(async () => chatApi.call(messages));
-  console.log('Commands to be executed'.green);
   let cleanedCommands = null;
   try {
     cleanedCommands = preprocessJsonInput(completion.text);
-    console.log(cleanedCommands);
   } catch (e) {
     console.log('No code found'.red);
   }
-
-  console.log('EOF'.green);
 
   return cleanedCommands;
 }

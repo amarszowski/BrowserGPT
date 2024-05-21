@@ -15,15 +15,22 @@ export async function processTask(
   let attempt = 0;
   let success = false;
 
+  console.log(`\nRozpoczęcie przetwarzania zadania: ${task}`.cyan);
+
   while (attempt < maxRetries && !success) {
     try {
+      console.log(`\nPróba ${attempt + 1} z ${maxRetries}...`.yellow);
+
       await interactWithPage(chatApi, page, task, options);
+      console.log('Interakcja ze stroną zakończona pomyślnie'.green);
 
       if (options.headless) {
         await logPageScreenshot(page);
+        console.log('Zrzut ekranu zapisany'.magenta);
       }
 
       await delay(2000); // Wait 2 seconds before verifying
+      console.log('Oczekiwanie 2 sekundy przed weryfikacją...'.gray);
 
       const verificationResult = await verifyPage(
         chatApi,
@@ -38,6 +45,7 @@ export async function processTask(
           status: 'Zaliczony',
           details: '',
         });
+        console.log(`Zadanie "${task}" zaliczone`.bold.green);
         success = true;
       } else {
         results.push({
@@ -46,12 +54,18 @@ export async function processTask(
           status: 'Nie zaliczony',
           details: verificationResult.reason,
         });
+        console.log(
+          `Zadanie "${task}" nie zaliczone: ${verificationResult.reason}`.bold
+            .red
+        );
         success = true;
       }
     } catch (e) {
       attempt += 1;
-      console.log(`Wykonanie nieudane, próba ${attempt} z ${maxRetries}`);
-      console.log(e);
+      console.log(
+        `Wykonanie nieudane, próba ${attempt} z ${maxRetries}`.bold.red
+      );
+      console.log(e.message.red);
 
       if (attempt >= maxRetries) {
         results.push({
@@ -60,10 +74,16 @@ export async function processTask(
           status: 'Nie zaliczony',
           details: 'Wystąpił błąd',
         });
+        console.log(
+          'Przekroczono maksymalną liczbę prób. Błąd w przetwarzaniu kroku testowego'
+            .bold.red
+        );
         throw new Error('Błąd w przetwarzaniu kroku testowego');
       }
     }
   }
+
+  console.log(`Zakończono przetwarzanie zadania: ${task}`.cyan);
 }
 
 export async function processPromptTasks(
@@ -93,6 +113,7 @@ export async function processPromptTasks(
         'Proszę wprowadzić krok testowy lub nacisnąć CTRL+C, aby zakończyć'.red
       );
     } else {
+      console.log(`Przetwarzanie zadania: ${task}`.cyan);
       await processTask(task, criteria, page, chatApi, options, results);
     }
   }

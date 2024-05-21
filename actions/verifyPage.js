@@ -3,6 +3,11 @@ import {HumanMessage, SystemMessage} from 'langchain/schema';
 import {parseSite} from '../util/index.js';
 
 async function verifyPageStepByStep(chatApi, page, verificationGuidelines) {
+  console.log(
+    `\nRozpoczęcie weryfikacji krok po kroku dla strony: ${await page.evaluate('location.href')}`
+      .cyan
+  );
+
   const systemPrompt = `
 Jesteś starszym inżynierem ds. testów automatycznych (Senior SDET) i Twoim zadaniem jest weryfikacja wyników kroków testowych podjętych na stronie internetowej. Otrzymasz zawartość bieżącej strony oraz kryteria akceptacji kroku testowego. Na podstawie tych informacji, przeanalizuj krok po kroku, czy kryteria akceptacji są spełnione, i dostarcz szczegółowy wynik w formie tekstowej.
 
@@ -33,12 +38,15 @@ Kryteria akceptacji: ${verificationGuidelines}
     ])
   );
 
-  console.log(completion.text);
-
+  console.log('Weryfikacja krok po kroku zakończona'.green);
   return completion.text;
 }
 
 async function verifyPageBoolean(chatApi, verificationResultText) {
+  console.log(
+    '\nRozpoczęcie analizy wyniku weryfikacji w formie tekstowej'.cyan
+  );
+
   const systemPrompt = `
 Jesteś starszym inżynierem ds. testów automatycznych (Senior SDET) i Twoim zadaniem jest określenie, czy kryteria akceptacji kroku testowego zostały spełnione na podstawie szczegółowego wyniku weryfikacji w formie tekstowej. Otrzymasz szczegółowy wynik w formie tekstowej i musisz zwrócić pojedynczą wartość logiczną wskazującą, czy kryteria akceptacji zostały spełnione.
 
@@ -62,15 +70,17 @@ Szczegółowy Wynik Weryfikacji: ${verificationResultText}
   let verificationResult = false;
   try {
     verificationResult = JSON.parse(completion.text);
-    console.log('Wynik weryfikacji:', verificationResult);
+    console.log('Wynik weryfikacji:'.green, verificationResult);
   } catch (e) {
-    console.log('Nie udało się odczytać wyniku weryfikacji:', e);
+    console.log('Nie udało się odczytać wyniku weryfikacji:'.bold.red, e);
   }
 
   return verificationResult;
 }
 
 async function verificationFailureReason(chatApi, verificationResultText) {
+  console.log('\nRozpoczęcie analizy przyczyny niepowodzenia weryfikacji'.cyan);
+
   const systemPrompt = `
 Jesteś starszym inżynierem ds. testów automatycznych (Senior SDET) i Twoim zadaniem jest dostarczenie krótkiego opisu, dlaczego kryteria akceptacji kroku testowego nie zostały spełnione, na podstawie szczegółowego wyniku weryfikacji w formie tekstowej. Otrzymasz szczegółowy wynik w formie tekstowej i musisz zwrócić krótki opis znalezionych problemów.
 
@@ -90,15 +100,19 @@ Szczegółowy Wynik Weryfikacji: ${verificationResultText}
     ])
   );
 
+  console.log('Analiza przyczyny niepowodzenia zakończona'.green);
   return completion.text;
 }
 
 export async function verifyPage(chatApi, page, verificationGuidelines) {
+  console.log('\n=== Rozpoczęcie weryfikacji strony ==='.bold.blue);
+
   const verificationResultText = await verifyPageStepByStep(
     chatApi,
     page,
     verificationGuidelines
   );
+
   const verificationPassed = await verifyPageBoolean(
     chatApi,
     verificationResultText
@@ -110,7 +124,7 @@ export async function verifyPage(chatApi, page, verificationGuidelines) {
       verificationResultText
     );
     console.log(
-      'Kryteria akceptacji nie zostały spełnione. Powód:',
+      'Kryteria akceptacji nie zostały spełnione. Powód:'.bold.red,
       failureReason
     );
     return {
@@ -118,7 +132,7 @@ export async function verifyPage(chatApi, page, verificationGuidelines) {
       reason: failureReason,
     };
   } else {
-    console.log('Kryteria akceptacji zostały spełnione.');
+    console.log('Kryteria akceptacji zostały spełnione.'.bold.green);
     return {
       passed: true,
       reason: null,
