@@ -50,7 +50,7 @@ Key Points:
 - Include assertions like 'expect' statements or wait functions such as 'waitForLoadState' only when they are specifically requested in the user task.
 - Minimal, relevant comments should be used to clarify complex actions or essential aspects of the test's purpose.
 - Apply 'frameLocator' for content in nested iframes, as needed based on the task requirements.
-- **Important:** Use attribute selectors or XPath for IDs starting with digits or special characters, e.g., \`page.click('[id="1040"]')\`. Do not use simple CSS selectors like \`#1040\` in such cases.
+- **Extremely Important:** Use attribute selectors or XPath for IDs starting with digits or special characters, e.g., \`page.click('[id="1040"]')\`, \`page.click('[id="101"]')\` or \`page.click('button[id="101"]')\`. Do not use simple CSS selectors like \`#1040\`, \`#101\` or \`page.click('button#101')\` in such cases.
 
 User Task: [Insert the specific user task here, including any detailed instructions related to the execution, waiting for specific conditions, or explicit requests for assertions and waits.]
 
